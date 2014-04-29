@@ -5,7 +5,7 @@
   "A list of functions of one parameter searching a body of text, returning a timestamp")
 
 (setf notmorg-date-extractors
-  (list 
+  (list
    (lambda (text) (progn
 	       (when (and text (string-match "\\([0-9]\\{1,2\\}\\) \\([A-Za-z]\\{3\\}\\) \\([0-9]\\{4\\}\\)" text))
 		 (let ((day   (read (match-string 1 text)))
@@ -20,10 +20,14 @@
   (with-temp-buffer
     (dolist (scheduled (let ((json-array-type 'list)
 			     (json-object-type 'plist))
-			 (json-read-from-string 
-			  (shell-command-to-string (concat "notmuch show --format=json tag:" (first tag))))))
+			 (json-read-from-string
+			  (shell-command-to-string (concat "notmuch show --format=json --entire-thread=false tag:" (first tag))))))
       (let* ((entry   (first (first scheduled)))
-	     (body    (getf (first (getf entry :body)) :content))
+             (content (getf (first (getf entry :body)) :content))
+             (body    (cond
+                       ((stringp content) content)
+                       ((listp content) (getf (first content) :content))
+                       (t "")))
 	     (subject (getf (getf entry :headers) :Subject))
 	     (date    (run-hook-with-args-until-success 'notmorg-date-extractors body)))
 	(insert "* ")
